@@ -19,7 +19,7 @@ public class DefaultReviewService implements ReviewService {
     @Override
     public Review submit(Review review) {
         Order order = validateExistingOrder(review.orderId());
-        
+
         // Validate that only the customer who created the order can review it
         if (!order.customerId().equals(review.customerId())) {
             throw new IllegalArgumentException(
@@ -27,23 +27,16 @@ public class DefaultReviewService implements ReviewService {
                     "Order customer: " + order.customerId() + ", Reviewer: " + review.customerId()
             );
         }
-        
-        // Register the restaurant ID if using InMemoryReviewRepository
-        if (reviewRepository instanceof InMemoryReviewRepository) {
-            ((InMemoryReviewRepository) reviewRepository).registerOrderRestaurant(
-                    review.orderId(),
-                    order.restaurantId()
-            );
-        }
-        
+
         Review reviewWithId = new Review(
                 IdGenerator.nextId("REV"),
                 review.orderId(),
                 review.customerId(),
+                order.restaurantId(),
                 review.rating(),
                 review.comment()
         );
-        
+
         return reviewRepository.save(reviewWithId);
     }
 
@@ -57,15 +50,15 @@ public class DefaultReviewService implements ReviewService {
     @Override
     public double getAverageRating(String restaurantId) {
         List<Review> reviews = reviewRepository.findByRestaurantId(restaurantId);
-        
+
         if (reviews.isEmpty()) {
             return 0.0;
         }
-        
+
         double sum = reviews.stream()
                 .mapToInt(Review::rating)
                 .sum();
-        
+
         return sum / (double) reviews.size();
     }
 
@@ -77,4 +70,3 @@ public class DefaultReviewService implements ReviewService {
         return order;
     }
 }
-
